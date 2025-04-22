@@ -13,7 +13,7 @@ from sqlalchemy import create_engine
 from dotenv import load_dotenv
 from psycopg2.extras import execute_batch
 
-CHUNK_SIZE=10000 # Number of records to process at a time
+CHUNK_SIZE=1000 # Number of records to process at a time
 
 # Load environment variables
 load_dotenv()
@@ -21,13 +21,20 @@ load_dotenv()
 def get_db_connection_params():
     """Get database connection parameters from environment"""
     params = {
+        "DB_NAME": "betipo-valoracion-dev",
+        "DB_USER": "doadmin",
+        "DB_PASSWORD": "AVNS_z5jgGVGmqBsRCmMukgc",
+        "DB_HOST": "pg-betipo-do-user-20048063-0.g.db.ondigitalocean.com",
+        "DB_PORT": "25060"
+    }
+    params1 = {
         "DB_NAME": os.getenv("DB_NAME"),
         "DB_USER": os.getenv("DB_USER"),
         "DB_PASSWORD": os.getenv("DB_PASSWORD"),
         "DB_HOST": os.getenv("DB_HOST"),
         "DB_PORT": os.getenv("DB_PORT")
     }
-    
+
     if None in params.values():
         raise ValueError("Missing environment variables for DB connection")
     

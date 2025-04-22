@@ -60,8 +60,6 @@ SELECT
   -- 5. Elevator match bonus (5%)
   0.05 * CASE WHEN t.ascensor = r.ref_ascensor THEN 1 ELSE 0 END
 ) as combined_score,
-
-
    (t.m2::decimal/ref_m2::decimal) as diferencia_porciento_m2,
   'FASE 1' as fase
 FROM reference r
