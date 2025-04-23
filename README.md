@@ -1,4 +1,4 @@
-Generador de Embeddings Inmobiliarios
+Generador de Embeddings Inmobiliarios o simplemente  GEI
 
 # DB_NAME=betipo-valoracion
 # DB_USER=betipo
@@ -11,3 +11,7 @@ DB_USER=doadmin
 DB_HOST=pg-betipo-do-user-20048063-0.g.db.ondigitalocean.com
 DB_PORT=25060
 DB_PASSWORD=AVNS_z5jgGVGmqBsRCmMukgc
+
+
+CREATE INDEX ON testigos USING ivfflat (embedding vector_l2_ops);
+CREATE INDEX ON testigos USING ivfflat (embedding_habitaciones_banios vector_l2_ops);
