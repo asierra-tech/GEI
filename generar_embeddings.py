@@ -47,8 +47,9 @@ def fetch_property_data(engine, chunk_size=10000):
     SELECT 
         id, m2, habitaciones, banios, planta, 
         tipo_inmueble, estado_conservacion, 
-        trastero, garaje, piscina, ac, ascensor, terraza, jardin
-    FROM testigos
+        trastero, garaje, piscina, ac, ascensor, terraza, jardin, activo
+    FROM testigos_view
+    WHERE testigo_cierre = false
     """
     for chunk in pd.read_sql(query, engine, chunksize=chunk_size):
         yield chunk
@@ -96,15 +97,39 @@ def store_embeddings_batch(conn, df, embeddings, column_name, batch_size=1000):
     """Store embeddings in database using batch operations"""
     cursor = conn.cursor()
     
+
+
+    # Split data into active and inactive based on 'activo' column
+    active_data = [(np.array(emb), id_val) for emb, id_val, activo in zip(embeddings, df['id'], df['activo']) if activo]
+    inactive_data = [(np.array(emb), id_val) for emb, id_val, activo in zip(embeddings, df['id'], df['activo']) if not activo]
+    
+    # Prepare queries for active and inactive tables
+    active_query = f"UPDATE testigos SET {column_name} = %s WHERE id = %s"
+    inactive_query = f"UPDATE testigos_inactivos SET {column_name} = %s WHERE id = %s"
+    
+    # Execute updates in batches for active data
+    if active_data:
+        execute_batch(cursor, active_query, active_data, batch_size)
+    
+    # Execute updates in batches for inactive data
+    if inactive_data:
+        execute_batch(cursor, inactive_query, inactive_data, batch_size)
+    
     # Prepare data for batch update
-    data = [(np.array(emb), id_val) for emb, id_val in zip(embeddings, df['id'])]
+    #data = [(np.array(emb), id_val, activo) for emb, id_val,activo in zip(embeddings, df['id'],df['activo']) if activo]  
+    # query = f"UPDATE testigos SET {column_name} = %s WHERE id = %s"
     
-    query = f"UPDATE testigos SET {column_name} = %s WHERE id = %s"
-    
-    # Execute in batches
-    execute_batch(cursor, query, data, batch_size)
-    
+    # # Execute in batches
+    # execute_batch(cursor, query, data, batch_size)
+   # Commit changes
     conn.commit()
+    print ('Data updated successfully')
+   # print('Refreshing materialized view')
+    # Refresh the materialized view
+    # refresh_query = "REFRESH MATERIALIZED VIEW testigos_materializedview"
+    # cursor.execute(refresh_query)
+    
+    # Close the cursor
     cursor.close()
 
 def calculate_embedding(conn, df, numeric_features, categorical_features, boolean_features, column_name):
@@ -161,7 +186,7 @@ def calculate_vector_embedding(df, numeric_features=None, categorical_features=N
 
 def store_pca_model(chunk, embeding_name,numeric_features, categorical_features, boolean_features):
     for col in boolean_features:
-        chunk[col]=chunk[col].astype(int)
+        chunk[col]=chunk[col].fillna(0).astype(int)
             # Create and fit global preprocessor
     global_preprocessor = create_embedding_pipeline(numeric_features, categorical_features, boolean_features)
             
@@ -308,41 +333,6 @@ def calculate_new_property_embedding_caracteristicas(new_property_df):
     
     return embedding
 
-def main1():
-    new_property = pd.DataFrame([{
-    'm2': 85,
-    'habitaciones': 2,
-    'banios': 1,
-    'planta': 1,
-    'tipo_inmueble': 'Piso',
-    'estado_conservacion': 'Buen estado',
-    'trastero': 0,
-    'garaje': 0,
-    'piscina': 0,
-    'ac': 1,
-    'ascensor': 1,
-    'terraza': 1,
-    'jardin': 1
-}])
-
-# Get embedding
-    embedding = calculate_new_property_embedding_habitaciones_banios(new_property)
-# Convert the embedding to a space-separated string
-    embedding_str="["
-    embedding_str += ",".join(map(str, embedding[0]))  # Use embedding[0] to access the single row
-    embedding_str +="]"
-# Print the generated embedding
-    print("Generated embedding habitaciones_banios:", embedding_str)
-
-# Get embedding
-    embedding = calculate_new_property_embedding_caracteristicas(new_property)
-# Convert the embedding to a space-separated string
-    embedding_str="["
-    embedding_str += ",".join(map(str, embedding[0]))  # Use embedding[0] to access the single row
-    embedding_str +="]"
-# Print the generated embedding
-    print("Generated embedding caracteristicas:", embedding_str)
-    
 
 if __name__ == "__main__":
     main()
