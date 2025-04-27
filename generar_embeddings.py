@@ -21,24 +21,24 @@ load_dotenv()
 
 def get_db_connection_params():
     """Get database connection parameters from environment"""
-    # params = {
-    #     "DB_NAME": "betipo-valoracion-dev",
-    #     "DB_USER": "doadmin",
-    #     "DB_PASSWORD": "AVNS_z5jgGVGmqBsRCmMukgc",
-    #     "DB_HOST": "pg-betipo-do-user-20048063-0.g.db.ondigitalocean.com",
-    #     "DB_PORT": "25060"
-    # }
     params = {
-        "DB_NAME": os.getenv("DB_NAME"),
-        "DB_USER": os.getenv("DB_USER"),
-        "DB_PASSWORD": os.getenv("DB_PASSWORD"),
-        "DB_HOST": os.getenv("DB_HOST"),
-        "DB_PORT": os.getenv("DB_PORT")
+        "DB_NAME": "betipo-valoracion",
+        "DB_USER": "doadmin",
+        "DB_PASSWORD": "AVNS_z5jgGVGmqBsRCmMukgc",
+        "DB_HOST": "pg-betipo-do-user-20048063-0.g.db.ondigitalocean.com",
+        "DB_PORT": "25060"
     }
+    # params = {
+    #     "DB_NAME": os.getenv("DB_NAME"),
+    #     "DB_USER": os.getenv("DB_USER"),
+    #     "DB_PASSWORD": os.getenv("DB_PASSWORD"),
+    #     "DB_HOST": os.getenv("DB_HOST"),
+    #     "DB_PORT": os.getenv("DB_PORT")
+    # }
 
     if None in params.values():
         raise ValueError("Missing environment variables for DB connection")
-    
+    print (params)
     return params
 
 def fetch_property_data(engine, chunk_size=10000):
