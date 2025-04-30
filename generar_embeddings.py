@@ -48,7 +48,7 @@ def fetch_property_data(engine, chunk_size=10000):
         id, m2, habitaciones, banios, planta, 
         tipo_inmueble, estado_conservacion, 
         trastero, garaje, piscina, ac, ascensor, terraza, jardin, activo
-    FROM testigos_view
+    FROM testigos_materialized_view
     WHERE testigo_cierre = false
     """
     for chunk in pd.read_sql(query, engine, chunksize=chunk_size):
