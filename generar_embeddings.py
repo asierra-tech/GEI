@@ -45,7 +45,7 @@ def fetch_property_data(engine, chunk_size=10000):
     """Fetch property data from database in chunks"""
     query = """
     SELECT 
-        id, m2, habitaciones, banios, planta, 
+        id, table_id, m2, habitaciones, banios, planta, 
         tipo_inmueble, estado_conservacion, 
         trastero, garaje, piscina, ac, ascensor, terraza, jardin, activo
     FROM testigos_materialized_view
@@ -100,8 +100,8 @@ def store_embeddings_batch(conn, df, embeddings, column_name, batch_size=1000):
 
 
     # Split data into active and inactive based on 'activo' column
-    active_data = [(np.array(emb), id_val) for emb, id_val, activo in zip(embeddings, df['id'], df['activo']) if activo]
-    inactive_data = [(np.array(emb), id_val) for emb, id_val, activo in zip(embeddings, df['id'], df['activo']) if not activo]
+    active_data = [(np.array(emb), id_val) for emb, id_val, activo in zip(embeddings, df['table_id'], df['activo']) if activo]
+    inactive_data = [(np.array(emb), id_val) for emb, id_val, activo in zip(embeddings, df['table_id'], df['activo']) if not activo]
     
     # Prepare queries for active and inactive tables
     active_query = f"UPDATE testigos SET {column_name} = %s WHERE id = %s"
