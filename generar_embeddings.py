@@ -97,12 +97,9 @@ def store_embeddings_batch(conn, df, embeddings, column_name, batch_size=1000):
     """Store embeddings in database using batch operations"""
     cursor = conn.cursor()
     
-
-
     # Split data into active and inactive based on 'activo' column
     active_data = [(np.array(emb), id_val) for emb, id_val, activo in zip(embeddings, df['table_id'], df['activo']) if activo]
-    inactive_data = [(np.array(emb), id_val) for emb, id_val, activo in zip(embeddings, df['table_id'], df['activo']) if not activo]
-    
+    inactive_data = [(np.array(emb), id_val) for emb, id_val, activo in zip(embeddings, df['table_id'], df['activo'])if activo == False]
     # Prepare queries for active and inactive tables
     active_query = f"UPDATE testigos SET {column_name} = %s WHERE id = %s"
     inactive_query = f"UPDATE testigos_inactivos SET {column_name} = %s WHERE id = %s"
