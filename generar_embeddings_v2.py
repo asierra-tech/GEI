@@ -10,6 +10,7 @@ import psycopg2
 from sqlalchemy import create_engine
 from dotenv import load_dotenv
 from joblib import dump, load
+from psycopg2.extras import execute_batch
 
 CHUNK_SIZE=2000000 # Number of records to process at a time
 
@@ -18,20 +19,20 @@ load_dotenv()
 
 def get_db_connection_params():
     """Get database connection parameters from environment"""
-    params = {
-        "DB_NAME": "betipo-valoracion-dev",
-        "DB_USER": "doadmin",
-        "DB_PASSWORD": "AVNS_z5jgGVGmqBsRCmMukgc",
-        "DB_HOST": "pg-betipo-do-user-20048063-0.g.db.ondigitalocean.com",
-        "DB_PORT": "25060"
-    }
     # params = {
-    #     "DB_NAME": os.getenv("DB_NAME"),
-    #     "DB_USER": os.getenv("DB_USER"),
-    #     "DB_PASSWORD": os.getenv("DB_PASSWORD"),
-    #     "DB_HOST": os.getenv("DB_HOST"),
-    #     "DB_PORT": os.getenv("DB_PORT")
+    #     "DB_NAME": "betipo-valoracion-dev",
+    #     "DB_USER": "doadmin",
+    #     "DB_PASSWORD": "AVNS_z5jgGVGmqBsRCmMukgc",
+    #     "DB_HOST": "pg-betipo-do-user-20048063-0.g.db.ondigitalocean.com",
+    #     "DB_PORT": "25060"
     # }
+    params = {
+        "DB_NAME": os.getenv("DB_NAME"),
+        "DB_USER": os.getenv("DB_USER"),
+        "DB_PASSWORD": os.getenv("DB_PASSWORD"),
+        "DB_HOST": os.getenv("DB_HOST"),
+        "DB_PORT": os.getenv("DB_PORT")
+    }
 
     if None in params.values():
         raise ValueError("Missing environment variables for DB connection")
@@ -123,11 +124,6 @@ def main():
         host=params['DB_HOST'],
         port=params['DB_PORT']
     )
-
-    global_preprocessor = None
-    global_pca = None
-    
-    total_records = 0
     
     # Process data in chunks
     print(f"\n Calculado modelo de carateristicas booleanas")
@@ -151,9 +147,11 @@ def main():
     )
     
     print(f"\n Actualizando embedding de carateristicas booleanas")
+    store_embeddings_caracteristicas(conn, chunk, embedding_column='embedding_caracteristicas', table_name='embedding_dict_caracteristicas')
 
-    update_embeddings_by_features(conn, chunk, embedding_column='embedding_caracteristicas', table_name='testigos')
-    update_embeddings_by_features(conn, chunk, embedding_column='embedding_caracteristicas', table_name='testigos_inactivos')
+
+    # update_embeddings_by_features(conn, chunk, embedding_column='embedding_caracteristicas', table_name='testigos')
+    # update_embeddings_by_features(conn, chunk, embedding_column='embedding_caracteristicas', table_name='testigos_inactivos')
       
     print(f"\n Finalizada actualizacion de embedding de carateristicas booleanas")  
     
@@ -183,8 +181,9 @@ def main():
     )
     
     print(f"\n Actualizando embedding de habitaciones y banios")
-    update_embeddings_by_habitaciones_banios(conn, chunk, embedding_column='embedding_caracteristicas', table_name='testigos')
-    update_embeddings_by_habitaciones_banios(conn, chunk, embedding_column='embedding_caracteristicas', table_name='testigos_inactivos')
+    store_embeddings_habitaciones_banios(conn, chunk, embedding_column='embedding_caracteristicas', table_name='embedding_dict_habitaciones_banios')
+    #update_embeddings_by_habitaciones_banios(conn, chunk, embedding_column='embedding_caracteristicas', table_name='testigos')
+    #update_embeddings_by_habitaciones_banios(conn, chunk, embedding_column='embedding_caracteristicas', table_name='testigos_inactivos')
       
     print(f"\n Finalizada actualizacion de embedding de habitaciones y banios")  
       
@@ -192,7 +191,59 @@ def main():
     conn.close()
     
     print("\n Embeddings generados, actualizados y almacenados satisfactoriamente! \n")
+    print(f"\n IMPORTANTE: Recuerde actualizar la vista materializada: testigos_materialized_view")  
+  
+  
+  
 
+#####
+def store_embeddings_caracteristicas(conn, chunk, embedding_column='embedding_caracteristicas', table_name='embedding_dict_caracteristicas'):
+    """
+    Insert or update (upsert) embeddings into the embedding dictionary table for boolean features.
+    """
+    boolean_features = ['trastero', 'garaje', 'piscina', 'ac', 'ascensor', 'terraza', 'jardin']
+    cursor = conn.cursor()
+    data = [
+        tuple([bool(row[col]) for col in boolean_features] + [row[embedding_column]])
+        for _, row in chunk.iterrows()
+    ]
+    columns = ', '.join(boolean_features) + ', embedding'
+    placeholders = ', '.join(['%s'] * (len(boolean_features) + 1))
+    conflict_cols = ', '.join(boolean_features)
+    query = f"""
+        INSERT INTO {table_name} ({columns})
+        VALUES ({placeholders})
+        ON CONFLICT ({conflict_cols})
+        DO UPDATE SET embedding = EXCLUDED.embedding
+    """
+    execute_batch(cursor, query, data, page_size=1000)
+    conn.commit()
+    cursor.close()
+    print(f"Embeddings almacenados/actualizados en {table_name} para {len(chunk)} combinaciones.")
+
+def store_embeddings_habitaciones_banios(conn, chunk, embedding_column='embedding_caracteristicas', table_name='embedding_dict_habitaciones_banios'):
+    """
+    Insert or update (upsert) embeddings into the embedding dictionary table for habitaciones and banios.
+    """
+    cursor = conn.cursor()
+    data = [
+        (int(row['habitaciones']), int(row['banios']), row[embedding_column])
+        for _, row in chunk.iterrows()
+    ]
+    columns = 'habitaciones, banios, embedding'
+    placeholders = '%s, %s, %s'
+    conflict_cols = 'habitaciones, banios'
+    query = f"""
+        INSERT INTO {table_name} ({columns})
+        VALUES ({placeholders})
+        ON CONFLICT ({conflict_cols})
+        DO UPDATE SET embedding = EXCLUDED.embedding
+    """
+    execute_batch(cursor, query, data, page_size=1000)
+    conn.commit()
+    cursor.close()
+    print(f"Embeddings almacenados/actualizados en {table_name} para {len(chunk)} combinaciones.")
+#####
 
 def update_embeddings_by_features(conn, chunk, embedding_column='embedding_caracteristicas', table_name='testigos'):
     """
