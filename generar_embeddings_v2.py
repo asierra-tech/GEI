@@ -150,8 +150,8 @@ def main():
     store_embeddings_caracteristicas(conn, chunk, embedding_column='embedding_caracteristicas', table_name='embedding_dict_caracteristicas')
 
 
-    # update_embeddings_by_features(conn, chunk, embedding_column='embedding_caracteristicas', table_name='testigos')
-    # update_embeddings_by_features(conn, chunk, embedding_column='embedding_caracteristicas', table_name='testigos_inactivos')
+    update_embeddings_by_features(conn, chunk, embedding_column='embedding_caracteristicas', table_name='testigos')
+    update_embeddings_by_features(conn, chunk, embedding_column='embedding_caracteristicas', table_name='testigos_inactivos')
       
     print(f"\n Finalizada actualizacion de embedding de carateristicas booleanas")  
     
