@@ -182,8 +182,8 @@ def main():
     
     print(f"\n Actualizando embedding de habitaciones y banios")
     store_embeddings_habitaciones_banios(conn, chunk, embedding_column='embedding_caracteristicas', table_name='embedding_dict_habitaciones_banios')
-    #update_embeddings_by_habitaciones_banios(conn, chunk, embedding_column='embedding_caracteristicas', table_name='testigos')
-    #update_embeddings_by_habitaciones_banios(conn, chunk, embedding_column='embedding_caracteristicas', table_name='testigos_inactivos')
+    update_embeddings_by_habitaciones_banios(conn, chunk, embedding_column='embedding_caracteristicas', table_name='testigos')
+    update_embeddings_by_habitaciones_banios(conn, chunk, embedding_column='embedding_caracteristicas', table_name='testigos_inactivos')
       
     print(f"\n Finalizada actualizacion de embedding de habitaciones y banios")  
       
